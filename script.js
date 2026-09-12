@@ -1,4 +1,4 @@
-  const board = document.getElementById("game-board");
+const board = document.getElementById("game-board");
 
 const scoreDisplay = document.getElementById("score");
 const timeDisplay = document.getElementById("time");
@@ -14,282 +14,83 @@ let tickTimer;
 
 let gameRunning = false;
 
-let audioContext;
 
+// =====================================
+// AUDIO FILES
+// =====================================
 
-// ========================================
-// AUDIO ENGINE
-// ========================================
+const tickSound =
+    new Audio("mixkit-tick-tock-clock-close-up-1059.wav");
 
-function initAudio() {
+const correctSound =
+    new Audio("mixkit-positive-notification-951.wav");
 
-    if (!audioContext) {
+const wrongSound =
+    new Audio("johnnybacon156-fah-469417.mp3");
 
-        audioContext =
-            new (window.AudioContext ||
-            window.webkitAudioContext)();
-    }
 
-    if (audioContext.state === "suspended") {
-        audioContext.resume();
-    }
-}
+// Preload sounds
+tickSound.preload = "auto";
+correctSound.preload = "auto";
+wrongSound.preload = "auto";
 
 
-// ========================================
-// CLOCK TICK
-// ========================================
+// =====================================
+// PLAY AUDIO
+// =====================================
 
-function playTick() {
+function playSound(sound) {
 
-    if (!gameRunning) return;
+    sound.currentTime = 0;
 
-    initAudio();
-
-    const oscillator =
-        audioContext.createOscillator();
-
-    const gain =
-        audioContext.createGain();
-
-    oscillator.type = "square";
-
-    oscillator.frequency.setValueAtTime(
-        850,
-        audioContext.currentTime
-    );
-
-    gain.gain.setValueAtTime(
-        0.045,
-        audioContext.currentTime
-    );
-
-    gain.gain.exponentialRampToValueAtTime(
-        0.001,
-        audioContext.currentTime + 0.055
-    );
-
-    oscillator.connect(gain);
-    gain.connect(audioContext.destination);
-
-    oscillator.start();
-
-    oscillator.stop(
-        audioContext.currentTime + 0.06
-    );
-}
-
-
-// ========================================
-// CLAP SOUND
-// ========================================
-
-function playClap() {
-
-    initAudio();
-
-    function clap(delay) {
-
-        setTimeout(() => {
-
-            const bufferSize =
-                audioContext.sampleRate * 0.12;
-
-            const buffer =
-                audioContext.createBuffer(
-                    1,
-                    bufferSize,
-                    audioContext.sampleRate
-                );
-
-            const data =
-                buffer.getChannelData(0);
-
-            for (
-                let i = 0;
-                i < bufferSize;
-                i++
-            ) {
-
-                data[i] =
-                    (Math.random() * 2 - 1) *
-                    Math.pow(
-                        1 - i / bufferSize,
-                        5
-                    );
-            }
-
-            const source =
-                audioContext.createBufferSource();
-
-            const filter =
-                audioContext.createBiquadFilter();
-
-            const gain =
-                audioContext.createGain();
-
-            source.buffer = buffer;
-
-            filter.type = "highpass";
-
-            filter.frequency.value = 900;
-
-            gain.gain.value = 0.32;
-
-            source.connect(filter);
-            filter.connect(gain);
-            gain.connect(
-                audioContext.destination
-            );
-
-            source.start();
-
-        }, delay);
-    }
-
-    // Two quick claps
-    clap(0);
-    clap(130);
-}
-
-
-// ========================================
-// "FAAAHHH" WRONG SOUND
-// ========================================
-
-function playFaahhh() {
-
-    initAudio();
-
-    const oscillator =
-        audioContext.createOscillator();
-
-    const gain =
-        audioContext.createGain();
-
-    const filter =
-        audioContext.createBiquadFilter();
-
-
-    oscillator.type = "sawtooth";
-
-    oscillator.frequency.setValueAtTime(
-        420,
-        audioContext.currentTime
-    );
-
-    oscillator.frequency.exponentialRampToValueAtTime(
-        75,
-        audioContext.currentTime + 0.75
-    );
-
-
-    filter.type = "lowpass";
-
-    filter.frequency.setValueAtTime(
-        900,
-        audioContext.currentTime
-    );
-
-    filter.frequency.exponentialRampToValueAtTime(
-        250,
-        audioContext.currentTime + 0.75
-    );
-
-
-    gain.gain.setValueAtTime(
-        0.001,
-        audioContext.currentTime
-    );
-
-    gain.gain.linearRampToValueAtTime(
-        0.22,
-        audioContext.currentTime + 0.08
-    );
-
-    gain.gain.exponentialRampToValueAtTime(
-        0.001,
-        audioContext.currentTime + 0.8
-    );
-
-
-    oscillator.connect(filter);
-    filter.connect(gain);
-    gain.connect(
-        audioContext.destination
-    );
-
-
-    oscillator.start();
-
-    oscillator.stop(
-        audioContext.currentTime + 0.85
-    );
-}
-
-
-// ========================================
-// TIME-UP SOUND
-// ========================================
-
-function playTimeUp() {
-
-    initAudio();
-
-    const notes = [500, 400, 300, 200];
-
-    notes.forEach((frequency, index) => {
-
-        setTimeout(() => {
-
-            const oscillator =
-                audioContext.createOscillator();
-
-            const gain =
-                audioContext.createGain();
-
-            oscillator.type = "square";
-
-            oscillator.frequency.value =
-                frequency;
-
-            gain.gain.setValueAtTime(
-                0.07,
-                audioContext.currentTime
-            );
-
-            gain.gain.exponentialRampToValueAtTime(
-                0.001,
-                audioContext.currentTime + 0.18
-            );
-
-            oscillator.connect(gain);
-
-            gain.connect(
-                audioContext.destination
-            );
-
-            oscillator.start();
-
-            oscillator.stop(
-                audioContext.currentTime + 0.2
-            );
-
-        }, index * 180);
+    sound.play().catch(() => {
+        // Browser may block audio until user interaction
     });
 }
 
 
-// ========================================
+// =====================================
+// CLOCK TICK
+// =====================================
+
+function startTicking() {
+
+    stopTicking();
+
+    // First tick
+    playSound(tickSound);
+
+    tickTimer = setInterval(() => {
+
+        if (gameRunning) {
+
+            playSound(tickSound);
+
+        }
+
+    }, 1000);
+}
+
+
+function stopTicking() {
+
+    clearInterval(tickTimer);
+
+    tickSound.pause();
+
+    tickSound.currentTime = 0;
+}
+
+
+// =====================================
 // START GAME
-// ========================================
+// =====================================
 
 function startGame() {
 
-    initAudio();
-
     clearInterval(timer);
-    clearInterval(tickTimer);
+
+    stopTicking();
 
     score = 0;
     time = 30;
@@ -309,17 +110,8 @@ function startGame() {
 
     createRound();
 
-
-    // Clock ticking
-    playTick();
-
-    tickTimer = setInterval(() => {
-
-        if (gameRunning) {
-            playTick();
-        }
-
-    }, 1000);
+    // Start clock sound
+    startTicking();
 
 
     // Game timer
@@ -344,15 +136,16 @@ function startGame() {
                 "⏰ Time's Up!",
                 true
             );
+
         }
 
     }, 1000);
 }
 
 
-// ========================================
+// =====================================
 // CREATE ROUND
-// ========================================
+// =====================================
 
 function createRound() {
 
@@ -379,7 +172,7 @@ function createRound() {
         `rgb(${r}, ${g}, ${b})`;
 
 
-    // Difficulty increases with score
+    // Difficulty increases
     const difference =
         Math.max(
             5,
@@ -425,6 +218,7 @@ function createRound() {
         const box =
             document.createElement("div");
 
+
         box.classList.add(
             "color-box"
         );
@@ -461,9 +255,9 @@ function createRound() {
 }
 
 
-// ========================================
+// =====================================
 // CHECK ANSWER
-// ========================================
+// =====================================
 
 function checkAnswer(event) {
 
@@ -474,9 +268,9 @@ function checkAnswer(event) {
         event.target;
 
 
-    // ====================================
-    // CORRECT
-    // ====================================
+    // =================================
+    // CORRECT ANSWER
+    // =================================
 
     if (
         box.dataset.correct ===
@@ -489,7 +283,7 @@ function checkAnswer(event) {
             score;
 
 
-        // Reset timer
+        // RESET TIME TO 30
         time = 30;
 
         timeDisplay.textContent =
@@ -500,13 +294,15 @@ function checkAnswer(event) {
         );
 
 
-        // CLAP SOUND
-        playClap();
+        // Play winning sound
+        playSound(correctSound);
 
 
         // Vibration
         if ("vibrate" in navigator) {
-            navigator.vibrate(40);
+
+            navigator.vibrate(50);
+
         }
 
 
@@ -517,24 +313,28 @@ function checkAnswer(event) {
 
 
         message.textContent =
-            "👏 CORRECT! +1";
+            "🏆 CORRECT! +1";
 
 
         setTimeout(() => {
 
             if (gameRunning) {
 
-                message.textContent = "";
+                message.textContent =
+                    "";
+
             }
 
         }, 600);
 
 
+        // Next round
         setTimeout(() => {
 
             if (gameRunning) {
 
                 createRound();
+
             }
 
         }, 150);
@@ -542,26 +342,27 @@ function checkAnswer(event) {
     }
 
 
-    // ====================================
-    // WRONG
-    // ====================================
+    // =================================
+    // WRONG ANSWER
+    // =================================
 
     else {
 
-        // Stop clock immediately
-        clearInterval(tickTimer);
+        // Stop clock
+        stopTicking();
 
 
-        // FAAA-HHH sound
-        playFaahhh();
+        // Play FAAA-HHH sound
+        playSound(wrongSound);
 
 
-        // Strong vibration
+        // Vibration
         if ("vibrate" in navigator) {
 
             navigator.vibrate(
-                [120, 60, 120]
+                [150, 70, 150]
             );
+
         }
 
 
@@ -580,18 +381,19 @@ function checkAnswer(event) {
         }, 350);
 
 
-        // End game
+        // END GAME
         endGame(
             "😮‍💨 Faaahhh! Wrong Box!",
             false
         );
+
     }
 }
 
 
-// ========================================
+// =====================================
 // END GAME
-// ========================================
+// =====================================
 
 function endGame(
     reason,
@@ -603,8 +405,10 @@ function endGame(
 
     gameRunning = false;
 
+
     clearInterval(timer);
-    clearInterval(tickTimer);
+
+    stopTicking();
 
 
     board.innerHTML = "";
@@ -613,20 +417,6 @@ function endGame(
     timeDisplay.classList.remove(
         "warning"
     );
-
-
-    if (timeEnded) {
-
-        playTimeUp();
-
-        if ("vibrate" in navigator) {
-
-            navigator.vibrate(
-                [150, 80, 150]
-            );
-        }
-
-    }
 
 
     message.textContent =
@@ -638,11 +428,11 @@ function endGame(
 }
 
 
-// ========================================
+// =====================================
 // START BUTTON
-// ========================================
+// =====================================
 
 startButton.addEventListener(
     "click",
     startGame
-);      
+);

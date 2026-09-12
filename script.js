@@ -16,6 +16,8 @@ let gameRunning = false;
 // START GAME
 function startGame() {
 
+    clearInterval(timer);
+
     score = 0;
     time = 30;
 
@@ -30,8 +32,6 @@ function startGame() {
 
     createRound();
 
-    clearInterval(timer);
-
     timer = setInterval(() => {
 
         time--;
@@ -40,7 +40,7 @@ function startGame() {
 
         if (time <= 0) {
 
-            endGame();
+            endGame("⏰ Time's Up!");
 
         }
 
@@ -48,13 +48,12 @@ function startGame() {
 }
 
 
-// CREATE A NEW ROUND
+// CREATE NEW ROUND
 function createRound() {
 
     board.innerHTML = "";
 
     // Random base colour
-
     const r = Math.floor(Math.random() * 180) + 40;
     const g = Math.floor(Math.random() * 180) + 40;
     const b = Math.floor(Math.random() * 180) + 40;
@@ -62,8 +61,7 @@ function createRound() {
     const baseColor = `rgb(${r}, ${g}, ${b})`;
 
 
-    // Darker colour
-
+    // Make one colour darker
     const difference =
         Math.max(5, 35 - score * 2);
 
@@ -80,14 +78,12 @@ function createRound() {
         `rgb(${darkR}, ${darkG}, ${darkB})`;
 
 
-    // Random position for darker box
-
+    // Random position for darkest box
     const correctPosition =
         Math.floor(Math.random() * 9);
 
 
     // Create 9 boxes
-
     for (let i = 0; i < 9; i++) {
 
         const box =
@@ -121,7 +117,7 @@ function createRound() {
 }
 
 
-// CHECK PLAYER'S ANSWER
+// CHECK ANSWER
 function checkAnswer(event) {
 
     if (!gameRunning) return;
@@ -129,38 +125,44 @@ function checkAnswer(event) {
     const box = event.target;
 
 
+    // CORRECT ANSWER
     if (box.dataset.correct === "true") {
-
-        // Correct answer
 
         score++;
 
         scoreDisplay.textContent = score;
 
-        createRound();
-
-    } else {
-
-        // Wrong answer
-
-        time -= 2;
+        // RESET TIMER TO 30 SECONDS
+        time = 30;
 
         timeDisplay.textContent = time;
 
-        message.textContent =
-            "❌ Wrong! -2 seconds";
+        message.textContent = "✅ Correct! +1";
 
         setTimeout(() => {
 
-            message.textContent = "";
+            if (gameRunning) {
+                message.textContent = "";
+            }
 
-        }, 800);
+        }, 600);
+
+        createRound();
+
+    }
+
+
+    // WRONG ANSWER
+    else {
+
+        endGame("❌ Wrong Box!");
+
     }
 }
 
 
 // END GAME
-function endGame() {
+function endGame(reason) {
 
     gameRunning = false;
 
@@ -169,7 +171,7 @@ function endGame() {
     board.innerHTML = "";
 
     message.textContent =
-        `🎉 Game Over! Your score: ${score}`;
+        `${reason} Final Score: ${score}`;
 
     startButton.textContent =
         "Play Again";
